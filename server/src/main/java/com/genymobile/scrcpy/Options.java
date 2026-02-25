@@ -414,6 +414,7 @@ public class Options {
                     if (!value.isEmpty()) {
                         options.audioEncoder = value;
                     }
+                    break;
                 case "power_off_on_close":
                     options.powerOffScreenOnClose = Boolean.parseBoolean(value);
                     break;

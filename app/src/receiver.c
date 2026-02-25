@@ -129,6 +129,7 @@ process_msg(struct sc_receiver *receiver, struct sc_device_msg *msg) {
             struct sc_uhid_output_task_data *data = malloc(sizeof(*data));
             if (!data) {
                 LOG_OOM();
+                sc_device_msg_destroy(msg);
                 return;
             }
 

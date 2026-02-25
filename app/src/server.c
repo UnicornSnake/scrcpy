@@ -250,6 +250,10 @@ execute_server(struct sc_server *server,
 
     unsigned dyn_idx = count; // from there, the strings are allocated
 #define ADD_PARAM(fmt, ...) do { \
+        if (count >= ARRAY_LEN(cmd) - 1) { \
+            LOGE("Command too long"); \
+            goto end; \
+        } \
         char *p; \
         if (asprintf(&p, fmt, ## __VA_ARGS__) == -1) { \
             goto end; \

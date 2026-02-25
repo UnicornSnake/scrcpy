@@ -174,7 +174,7 @@ sc_str_list_contains(const char *list, char sep, const char *s) {
         p = strchr(list, sep);
 
         size_t token_len = p ? (size_t) (p - list) : strlen(list);
-        if (!strncmp(list, s, token_len)) {
+        if (token_len == strlen(s) && !strncmp(list, s, token_len)) {
             return true;
         }
 
@@ -251,7 +251,7 @@ sc_str_wrap_lines(const char *input, unsigned columns, unsigned indent) {
     size_t cap = strlen(input) * 3 / 2;
 
     if (!sc_strbuf_init(&buf, cap)) {
-        return false;
+        return NULL;
     }
 
 #define APPEND(S,N) if (!sc_strbuf_append(&buf, S, N)) goto error
@@ -357,6 +357,10 @@ sc_str_remove_trailing_cr(char *s, size_t len) {
 
 char *
 sc_str_to_hex_string(const uint8_t *data, size_t size) {
+    if (size > (SIZE_MAX - 1) / 3) {
+        LOG_OOM();
+        return NULL;
+    }
     size_t buffer_size = size * 3 + 1;
     char *buffer = malloc(buffer_size);
     if (!buffer) {

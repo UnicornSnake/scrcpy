@@ -9,17 +9,101 @@
 
 #define CMD_MAX_LEN 8192
 
+// Append a Windows-escaped argument to cmd.
+// See: https://learn.microsoft.com/en-us/cpp/c-language/parsing-c-command-line-arguments
+static bool
+append_escaped_arg(char *cmd, size_t len, size_t *pos, const char *arg) {
+    bool needs_quoting = arg[0] == '\0' || strpbrk(arg, " \t\"");
+
+    if (!needs_quoting) {
+        // No special characters, append as-is
+        size_t arg_len = strlen(arg);
+        if (*pos + arg_len >= len) {
+            return false;
+        }
+        memcpy(cmd + *pos, arg, arg_len);
+        *pos += arg_len;
+        return true;
+    }
+
+    // Wrap in quotes with proper backslash/quote escaping
+    if (*pos + 1 >= len) {
+        return false;
+    }
+    cmd[(*pos)++] = '"';
+
+    for (const char *p = arg; *p; ++p) {
+        // Count consecutive backslashes
+        size_t num_backslashes = 0;
+        while (*p == '\\') {
+            ++num_backslashes;
+            ++p;
+        }
+
+        if (*p == '\0') {
+            // End of string: double all backslashes (they precede closing quote)
+            size_t need = num_backslashes * 2;
+            if (*pos + need + 1 >= len) {
+                return false;
+            }
+            for (size_t i = 0; i < need; ++i) {
+                cmd[(*pos)++] = '\\';
+            }
+            break;
+        } else if (*p == '"') {
+            // Quote: double backslashes + escape the quote
+            size_t need = num_backslashes * 2 + 1;
+            if (*pos + need + 1 >= len) {
+                return false;
+            }
+            for (size_t i = 0; i < num_backslashes * 2; ++i) {
+                cmd[(*pos)++] = '\\';
+            }
+            cmd[(*pos)++] = '\\';
+            cmd[(*pos)++] = '"';
+        } else {
+            // Not a quote: backslashes are literal
+            if (*pos + num_backslashes + 1 >= len) {
+                return false;
+            }
+            for (size_t i = 0; i < num_backslashes; ++i) {
+                cmd[(*pos)++] = '\\';
+            }
+            cmd[(*pos)++] = *p;
+        }
+    }
+
+    if (*pos + 1 >= len) {
+        return false;
+    }
+    cmd[(*pos)++] = '"';
+    return true;
+}
+
 static bool
 build_cmd(char *cmd, size_t len, const char *const argv[]) {
-    // Windows command-line parsing is WTF:
+    // Windows command-line parsing rules:
     // <http://daviddeley.com/autohotkey/parameters/parameters.htm#WINPASS>
-    // only make it work for this very specific program
-    // (don't handle escaping nor quotes)
-    size_t ret = sc_str_join(cmd, argv, ' ', len);
-    if (ret >= len) {
+    // Each argument is escaped and quoted as needed.
+    size_t pos = 0;
+    for (const char *const *arg = argv; *arg; ++arg) {
+        if (arg != argv) {
+            if (pos + 1 >= len) {
+                LOGE("Command too long (%" SC_PRIsizet " chars)", len - 1);
+                return false;
+            }
+            cmd[pos++] = ' ';
+        }
+        if (!append_escaped_arg(cmd, len, &pos, *arg)) {
+            LOGE("Command too long (%" SC_PRIsizet " chars)", len - 1);
+            return false;
+        }
+    }
+    if (pos >= len) {
         LOGE("Command too long (%" SC_PRIsizet " chars)", len - 1);
         return false;
     }
+    cmd[pos] = '\0';
     return true;
 }
 
