@@ -379,14 +379,24 @@ if (!receiver->uhid_devices) {
 
 ## Deprecated / Unsupported Code Summary
 
-| Category | Item | Location | Replacement |
-|----------|------|----------|-------------|
-| FFmpeg | `channels`, `channel_layout` fields | `demuxer.c:206-207` | `ch_layout` (AVChannelLayout) — already conditionally supported |
-| FFmpeg | `avcodec_find_decoder` may change | `demuxer.c:174` | Monitor for API changes in FFmpeg 7+ |
-| SDL | SDL2 audio APIs | `audio_player.c` | SDL3 audio subsystem |
-| Android | Hidden API reflection usage | `server/` Java code | Some hidden APIs may be removed in future Android versions |
-| C | `strdup` (POSIX, not C standard) | Multiple files | Portable on all target platforms, but not ISO C |
-| Build | Meson `option()` types | `meson_options.txt` | `feature` type for boolean build options |
+| Category | Item | Location | Replacement | Guarded? |
+|----------|------|----------|-------------|----------|
+| FFmpeg | `av_register_all()` (deprecated FFmpeg 4.0) | `main.c:72` | No-op in modern FFmpeg, remove call | Yes (`#ifdef`) |
+| FFmpeg | `av_oformat_next()` (deprecated FFmpeg 4.0) | `recorder.c:33`, `v4l2_sink.c:27` | `av_muxer_iterate()` | Yes (`#ifdef`) |
+| FFmpeg | `channels`, `channel_layout` fields (deprecated FFmpeg 5.1) | `demuxer.c:206`, `audio_player.c:40` | `ch_layout` (AVChannelLayout) | Yes (`#ifdef`) |
+| FFmpeg | `av_opt_set_channel_layout()` (deprecated FFmpeg 5.1) | `audio_regulator.c:379` | `av_opt_set_chlayout()` | Yes (`#ifdef`) |
+| FFmpeg | `av_stream_new_side_data()` (deprecated FFmpeg 6.1) | `recorder.c:524` | `av_packet_side_data_new()` | Yes (`#ifdef`) |
+| FFmpeg | `AVFormatContext.filename` (deprecated FFmpeg 4.0) | `v4l2_sink.c:202` | `AVFormatContext.url` | Yes (`#ifdef`) |
+| SDL | SDL2 threading/surface APIs | `thread.c`, `icon.c` | SDL3 equivalents (renamed APIs) | N/A |
+| Android | `Looper.prepareMainLooper()` (deprecated API 30) | `Workarounds.java:90` | No replacement (necessary workaround) | No |
+| Android | `SurfaceControl.openTransaction()` (deprecated API 28) | `SurfaceControl.java:40`, `ScreenCapture.java:205` | `SurfaceControl.Transaction` class | Version-gated |
+| Android | Hidden/private API usage (`@SuppressLint`) | 9 wrapper classes | At risk of being blocked in future Android | **HIGH RISK** |
+| Android | `android.support.test` runner | `server/build.gradle:12` | `androidx.test.runner.AndroidJUnitRunner` | No |
+| Build | `meson_options.txt` filename (deprecated Meson 1.1) | `meson_options.txt` | Rename to `meson.options` | No |
+| Build | Min FFmpeg req >= 57.33 (FFmpeg 3.1, 2016) | `app/meson.build:116` | Raise to >= 58.9 to drop 6 compat paths | No |
+| Build | `proguard-android.txt` (deprecated) | `server/build.gradle:17` | `proguard-android-optimize.txt` | No |
+| Platform | `WSAStartup(MAKEWORD(1, 1))` (WinSock 1.1) | `net.c:29` | `MAKEWORD(2, 2)` for WinSock 2.2 | No |
+| Platform | `WINVER=0x0600` (Windows Vista target) | `app/meson.build:81` | `0x0601` (Win 7) or `0x0A00` (Win 10) | No |
 
 ---
 
@@ -417,5 +427,7 @@ The codebase demonstrates several good security practices:
 8. **Fix `sc_str_list_contains`** substring matching logic (Medium)
 9. **Add allowlist validation** for shell parameters (Medium)
 10. **Fix memory leak** in `receiver.c` OOM path for UHID output (Low)
-11. **Plan FFmpeg/SDL3 migration** for deprecated APIs (Medium, future-proofing)
-12. **Add fallback paths** for deprecated Android APIs in Java wrappers (Low)
+11. **Raise minimum FFmpeg version** to >= 58.9 to eliminate 6 deprecated API compat paths (Medium)
+12. **Plan SDL3 migration** — all SDL2 threading/surface wrappers need renaming (Medium, future)
+13. **Add fallback paths** for deprecated Android APIs in Java wrappers (Low)
+14. **Update build config** — rename `meson_options.txt`, update WinSock to 2.2, update ProGuard config (Low)
