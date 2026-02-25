@@ -127,8 +127,8 @@ static void test_serialize_inject_scroll_event(void) {
                     .height = 1920,
                 },
             },
-            .hscroll = 1,
-            .vscroll = -1,
+            .hscroll = 16,
+            .vscroll = -16,
             .buttons = 1,
         },
     };
@@ -141,8 +141,8 @@ static void test_serialize_inject_scroll_event(void) {
         SC_CONTROL_MSG_TYPE_INJECT_SCROLL_EVENT,
         0x00, 0x00, 0x01, 0x04, 0x00, 0x00, 0x04, 0x02, // 260 1026
         0x04, 0x38, 0x07, 0x80, // 1080 1920
-        0x7F, 0xFF, // 1 (float encoded as i16)
-        0x80, 0x00, // -1 (float encoded as i16)
+        0x7F, 0xFF, // 16 (float encoded as i16 in the range [-16, 16])
+        0x80, 0x00, // -16 (float encoded as i16 in the range [-16, 16])
         0x00, 0x00, 0x00, 0x01, // 1
     };
     assert(!memcmp(buf, expected, sizeof(expected)));
@@ -411,6 +411,26 @@ static void test_serialize_open_hard_keyboard(void) {
     assert(!memcmp(buf, expected, sizeof(expected)));
 }
 
+static void test_serialize_start_app(void) {
+    struct sc_control_msg msg = {
+        .type = SC_CONTROL_MSG_TYPE_START_APP,
+        .start_app = {
+            .name = "firefox",
+        },
+    };
+
+    uint8_t buf[SC_CONTROL_MSG_MAX_SIZE];
+    size_t size = sc_control_msg_serialize(&msg, buf);
+    assert(size == 9);
+
+    const uint8_t expected[] = {
+        SC_CONTROL_MSG_TYPE_START_APP,
+        7, // length
+        'f', 'i', 'r', 'e', 'f', 'o', 'x', // app name
+    };
+    assert(!memcmp(buf, expected, sizeof(expected)));
+}
+
 static void test_serialize_reset_video(void) {
     struct sc_control_msg msg = {
         .type = SC_CONTROL_MSG_TYPE_RESET_VIDEO,
@@ -448,6 +468,7 @@ int main(int argc, char *argv[]) {
     test_serialize_uhid_input();
     test_serialize_uhid_destroy();
     test_serialize_open_hard_keyboard();
+    test_serialize_start_app();
     test_serialize_reset_video();
     return 0;
 }

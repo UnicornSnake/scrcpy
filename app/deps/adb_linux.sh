@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -ex
-DEPS_DIR=$(dirname ${BASH_SOURCE[0]})
-cd "$DEPS_DIR"
-. common
+. $(dirname ${BASH_SOURCE[0]})/_init "$@"
 
-VERSION=35.0.2
-FILENAME=platform-tools_r$VERSION-linux.zip
-PROJECT_DIR=platform-tools-$VERSION-linux
-SHA256SUM=acfdcccb123a8718c46c46c059b2f621140194e5ec1ac9d81715be3d6ab6cd0a
+VERSION=36.0.0
+URL="https://dl.google.com/android/repository/platform-tools_r$VERSION-linux.zip"
+SHA256SUM=0ead642c943ffe79701fccca8f5f1c69c4ce4f43df2eefee553f6ccb27cbfbe8
+
+PROJECT_DIR="platform-tools-$VERSION-linux"
+FILENAME="$PROJECT_DIR.zip"
 
 cd "$SOURCES_DIR"
 
@@ -15,7 +15,7 @@ if [[ -d "$PROJECT_DIR" ]]
 then
     echo "$PWD/$PROJECT_DIR" found
 else
-    get_file "https://dl.google.com/android/repository/$FILENAME" "$FILENAME" "$SHA256SUM"
+    get_file "$URL" "$FILENAME" "$SHA256SUM"
     mkdir -p "$PROJECT_DIR"
     cd "$PROJECT_DIR"
     ZIP_PREFIX=platform-tools

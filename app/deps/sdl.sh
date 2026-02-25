@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -ex
-DEPS_DIR=$(dirname ${BASH_SOURCE[0]})
-cd "$DEPS_DIR"
-. common
+. $(dirname ${BASH_SOURCE[0]})/_init
 process_args "$@"
 
-VERSION=2.32.2
-FILENAME=SDL-$VERSION.tar.gz
-PROJECT_DIR=SDL-release-$VERSION
-SHA256SUM=f2c7297ae7b3d3910a8b131e1e2a558fdd6d1a4443d5e345374d45cadfcb05a4
+VERSION=2.32.8
+URL="https://github.com/libsdl-org/SDL/archive/refs/tags/release-$VERSION.tar.gz"
+SHA256SUM=dd35e05644ae527848d02433bec24dd0ea65db59faecf1a0e5d1880c533dac2c
+
+PROJECT_DIR="sdl-$VERSION"
+FILENAME="$PROJECT_DIR.tar.gz"
 
 cd "$SOURCES_DIR"
 
@@ -16,9 +16,9 @@ if [[ -d "$PROJECT_DIR" ]]
 then
     echo "$PWD/$PROJECT_DIR" found
 else
-    get_file "https://github.com/libsdl-org/SDL/archive/refs/tags/release-$VERSION.tar.gz" "$FILENAME" "$SHA256SUM"
-    tar xf "$FILENAME"  # First level directory is "$PROJECT_DIR"
-    patch -d "$PROJECT_DIR" -p1 < "$PATCHES_DIR"/SDL-pipewire-Ensure-that-the-correct-struct-is-used-for-.patch
+    get_file "$URL" "$FILENAME" "$SHA256SUM"
+    tar xf "$FILENAME"  # First level directory is "SDL-release-$VERSION"
+    mv "SDL-release-$VERSION" "$PROJECT_DIR"
 fi
 
 mkdir -p "$BUILD_DIR/$PROJECT_DIR"
@@ -29,7 +29,7 @@ export CXXFLAGS="$CFLAGS"
 
 if [[ -d "$DIRNAME" ]]
 then
-    echo "'$PWD/$HDIRNAME' already exists, not reconfigured"
+    echo "'$PWD/$DIRNAME' already exists, not reconfigured"
     cd "$DIRNAME"
 else
     mkdir "$DIRNAME"
